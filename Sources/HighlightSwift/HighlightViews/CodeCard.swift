@@ -1,6 +1,6 @@
 import SwiftUI
 
-@available(iOS 16.1, *)
+//@available(iOS 16.1, *)
 public struct CodeCard: View {
     @Environment(\.colorScheme)
     var colorScheme
@@ -103,6 +103,7 @@ public struct CodeCard: View {
             switch textStyle {
             case .body:
                 textStyle = .caption2
+                
             case .callout:
                 textStyle = .body
             case .footnote:
@@ -134,7 +135,7 @@ public struct CodeCard: View {
             } label: {
                 systemImage("paintpalette")
             }
-            .menuStyle(.button)
+//            .menuStyle(.button)
         }
     }
     
@@ -179,6 +180,8 @@ struct CodeCard_Previews: PreviewProvider {
             SwiftUIView()
         }
     }
+    
+
     """
     
     static var previews: some View {

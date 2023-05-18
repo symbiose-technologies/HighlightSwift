@@ -1,7 +1,7 @@
 import SwiftUI
 
-@available(iOS 16.1, *)
-@available(tvOS 16.1, *)
+//@available(iOS 16.1, *)
+//@available(tvOS 16.1, *)
 public struct CodeText: View {
     @Environment(\.colorScheme)
     var colorScheme
@@ -42,7 +42,7 @@ public struct CodeText: View {
     
     public var body: some View {
         highlightedText
-            .fontDesign(.monospaced)
+//            .fontDesign(.monospaced)
             .task {
                 if
                     highlightTask == nil,
