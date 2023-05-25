@@ -1,5 +1,48 @@
 import SwiftUI
 
+
+public struct CodeCardConfig {
+    
+    public var fontSize: CGFloat
+    public var applyFontStyle: Bool
+    public var displayTopBar: Bool
+    public var style: HighlightStyle.Name
+    public var horizontalScroll: Bool
+    
+    public var font: Font {
+        Font.system(size: fontSize, design: .monospaced)
+    }
+    public func fontForSize(_ size: CGFloat) -> Font {
+        return Font.system(size: size, design: .monospaced)
+    }
+    
+    public init(
+        fontSize: CGFloat = 16,
+        applyFontStyle: Bool = true,
+        displayTopBar: Bool = true,
+        style: HighlightStyle.Name = .stackoverflow,
+        horizontalScroll: Bool = true
+    ) {
+        self.fontSize = fontSize
+        self.applyFontStyle = applyFontStyle
+        self.displayTopBar = displayTopBar
+        self.style = style
+        self.horizontalScroll = horizontalScroll
+    }
+    
+    public static func defaultConfig() -> CodeCardConfig {
+        #if os(iOS)
+        CodeCardConfig(fontSize: 14,
+                       horizontalScroll: true)
+        #else
+        CodeCardConfig(horizontalScroll: false)
+        #endif
+    }
+    
+}
+
+
+
 //@available(iOS 16.1, *)
 public struct CodeCard: View {
     @Environment(\.colorScheme)
@@ -9,7 +52,13 @@ public struct CodeCard: View {
     var styleName: HighlightStyle.Name
     
     @State
-    var textStyle: Font.TextStyle
+    var font: Font
+    
+    @State
+    var fontSize: CGFloat
+    
+    @State
+    var lineHorizontalWrap: Bool
     
     @State
     var showStyleControls: Bool = false
@@ -18,8 +67,14 @@ public struct CodeCard: View {
     var highlightResult: HighlightResult?
     
     let text: String
-    let initialTextStyle: Font.TextStyle
-    let initialStyleName: HighlightStyle.Name
+    
+    var initialStyleName: HighlightStyle.Name { config.style }
+    
+    var applyTextStyle: Bool { config.applyFontStyle }
+    
+    
+    let config: CodeCardConfig
+    
     
     /// Creates a card view that displays syntax highlighted code.
     /// - Parameters:
@@ -27,46 +82,27 @@ public struct CodeCard: View {
     ///   - style: The initial highlight color style (default: .xcode).
     ///   - textStyle: The initial font text style (default: .caption2).
     public init(_ text: String,
-                style: HighlightStyle.Name = .xcode,
-                textStyle: Font.TextStyle = .caption2) {
+                config: CodeCardConfig = .defaultConfig()
+    ) {
         self.text = text
-        self.initialStyleName = style
-        self.initialTextStyle = textStyle
-        self._styleName = State(initialValue: style)
-        self._textStyle = State(initialValue: textStyle)
+        
+        self.config = config
+        
+        self._styleName = State(initialValue: config.style)
+        self._font = State(initialValue: config.font)
+        self._fontSize = State(initialValue: config.fontSize)
+        self._lineHorizontalWrap = State(initialValue: !config.horizontalScroll)
     }
     
     public var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Color
-                .clear
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2, perform: resetStyle)
-                .onTapGesture(perform: toggleShowButtons)
-            HStack {
-                CodeText(text, style: styleName) { highlightResult in
-                    withAnimation {
-                        self.highlightResult = highlightResult
-                    }
-                }
-                .font(.system(textStyle))
-                .textSelection(.enabled)
-                Spacer()
+        VStack(spacing: 0) {
+            if config.displayTopBar {
+                topBarView
             }
-            .contentShape(Rectangle())
-            .onTapGesture(count: 2, perform: resetStyle)
-            .onTapGesture(perform: toggleShowButtons)
-            VStack(alignment: .trailing) {
-                if showStyleControls {
-                    styleControls
-                }
-                Spacer(minLength: 12)
-                if let highlightResult {
-                    languageName(highlightResult)
-                }
-            }
+            
+            contentView
+                .padding(12)
         }
-        .padding(12)
         .background {
             ZStack {
                 if let highlightResult {
@@ -77,17 +113,105 @@ public struct CodeCard: View {
                     .stroke(.thinMaterial)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onChange(of: colorScheme) { newValue in
             self.highlightResult = nil
         }
     }
+    
+    public var topBarView: some View {
+        HStack {
+            if let highlightResult {
+                languageNameTopBar(highlightResult)
+            }
+            Spacer()
+            
+            copyButton
+            
+            styleControlsGroup
+        }
+        .buttonStyle(.borderless)
+        .padding(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+        .background(
+            Material.ultraThick
+        )
+    }
+    
+    
+    public var contentView: some View  {
+        ZStack(alignment: .topTrailing) {
+            Color
+                .clear
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2, perform: resetStyle)
+                .onTapGesture(perform: toggleShowButtons)
+            
+            if lineHorizontalWrap {
+                textContent
+            } else {
+                ScrollView(.horizontal) {
+                    textContent
+                }
+            }
+            
+            if !config.displayTopBar {
+                VStack(alignment: .trailing) {
+                    if showStyleControls {
+                        styleControls
+                    }
+                    Spacer(minLength: 12)
+                    if let highlightResult {
+                        languageName(highlightResult)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    public var textContent: some View {
+        HStack {
+            if applyTextStyle {
+                codeTextWithFont
+            } else {
+                codeTextWithFont
+            }
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2, perform: resetStyle)
+        .onTapGesture(perform: toggleShowButtons)
+    }
+    
+    public var codeTextNoFont: some View {
+        CodeText(text, style: styleName) { highlightResult in
+            withAnimation {
+                self.highlightResult = highlightResult
+            }
+        }
+        .textSelection(.enabled)
+
+    }
+    
+    public var codeTextWithFont: some View {
+        CodeText(text, style: styleName) { highlightResult in
+            withAnimation {
+                self.highlightResult = highlightResult
+            }
+        }
+        .font(self.font)
+        .textSelection(.enabled)
+
+    }
+    
+    
     
     // MARK: - Actions
     
     func resetStyle() {
         withAnimation {
             showStyleControls = false
-            textStyle = initialTextStyle
+            font = config.font
             styleName = initialStyleName
         }
     }
@@ -98,34 +222,73 @@ public struct CodeCard: View {
         }
     }
     
-    func toggleFontTextStyle() {
+    func toggleFontSize() {
         withAnimation {
-            switch textStyle {
-            case .body:
-                textStyle = .caption2
-                
-            case .callout:
-                textStyle = .body
-            case .footnote:
-                textStyle = .callout
-            case .caption:
-                textStyle = .footnote
-            case .caption2:
-                textStyle = .caption
-            default:
-                textStyle = .caption2
+            fontSize += 1
+            if fontSize > 20 {
+                fontSize = 12
             }
+            font = config.fontForSize(fontSize)
         }
     }
     
+    
+//    func toggleFontTextStyle() {
+//        withAnimation {
+//            switch textStyle {
+//            case .body:
+//                let font = Font.system(.caption, design: .monospaced)
+//                textStyle = .caption2
+//            case .callout:
+//                textStyle = .body
+//            case .footnote:
+//                textStyle = .callout
+//            case .caption:
+//                textStyle = .footnote
+//            case .caption2:
+//                textStyle = .caption
+//            default:
+//                textStyle = .caption2
+//            }
+//        }
+//    }
+    
+    
+    
+    
+    
     // MARK: - Views
-
+    
+    
+    
     var styleControls: some View {
         VStack(spacing: 12) {
-            Button(action: toggleFontTextStyle) {
-                systemImage("textformat.size")
+            styleControlsGroup
+        }
+    }
+    
+    @ViewBuilder
+    var styleControlsGroup: some View {
+        if #available(iOS 16, macOS 13, *) {
+            styleControlsGroupBase
+                .menuStyle(.button)
+        } else {
+            styleControlsGroupBase
+        }
+    }
+    
+    
+    var styleControlsGroupBase: some View {
+        Group {
+            Button(action: toggleFontSize) {
+                systemImage("textformat.size", withBackground: !config.displayTopBar)
             }
+            
             Menu {
+                //add a toggle for the horizontal scroll
+                Toggle("Wrap Lines", isOn: $lineHorizontalWrap)
+                
+                
                 Picker("Style", selection: $styleName) {
                     ForEach(HighlightStyle.Name.allCases) { styleName in
                         Text(styleName.rawValue)
@@ -135,11 +298,33 @@ public struct CodeCard: View {
             } label: {
                 systemImage("paintpalette")
             }
-//            .menuStyle(.button)
         }
     }
     
-    func systemImage(_ systemName: String) -> some View {
+    
+    @State private var isCopied = false
+    var copyButton: some View {
+        Button(action: {
+            let success = text.copyToClipboard()
+            if success {
+                withAnimation { isCopied = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    withAnimation {
+                        isCopied = false
+                    }
+                }
+            }
+        }) {
+            Label(isCopied ? "Copied!" : "Copy Code", systemImage: isCopied ? "checkmark" : "doc.on.doc")
+                .font(.callout)
+                .foregroundColor(isCopied ? .green : .secondary)
+                .frame(height: 34)
+        }
+    }
+    
+    
+    
+    func systemImage(_ systemName: String, withBackground: Bool = true) -> some View {
         Text("\(Image(systemName: systemName))")
             .font(.callout)
             .foregroundColor(.secondary)
@@ -149,6 +334,21 @@ public struct CodeCard: View {
                     .fill(.ultraThinMaterial)
             }
     }
+    
+    func languageNameTopBar(_ result: HighlightResult) -> some View {
+        Text(result.languageName)
+            .font(.callout)
+            .fontWeight(.semibold)
+            .foregroundColor(.secondary)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+//            .background {
+//                Capsule()
+//                    .fill(.ultraThinMaterial)
+//            }
+    }
+    
+    
     
     func languageName(_ result: HighlightResult) -> some View {
         Text(result.languageName)
