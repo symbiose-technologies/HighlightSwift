@@ -38,3 +38,15 @@ public struct HighlightStyle {
         }
     }
 }
+
+extension HighlightStyle: Hashable {
+//    public func hash(into hasher: inout Hasher) {
+//        hasher.combine(name)
+//        hasher.combine(colorScheme)
+//    }
+//    
+//    public static func == (lhs: HighlightStyle, rhs: HighlightStyle) -> Bool {
+//        return lhs.name == rhs.name &&
+//            lhs.colorScheme == rhs.colorScheme
+//    }
+}

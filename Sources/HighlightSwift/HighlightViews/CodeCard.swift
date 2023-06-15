@@ -75,6 +75,10 @@ public struct CodeCard: View {
     
     let config: CodeCardConfig
     
+    var codeLanguage: String? {
+        highlightResult?.language
+    }
+    
     
     /// Creates a card view that displays syntax highlighted code.
     /// - Parameters:
@@ -184,7 +188,7 @@ public struct CodeCard: View {
     }
     
     public var codeTextNoFont: some View {
-        CodeText(text, style: styleName) { highlightResult in
+        CodeText(text, style: styleName, ancestorProvidedColorScheme: colorScheme) { highlightResult in
             withAnimation {
                 self.highlightResult = highlightResult
             }
@@ -194,7 +198,7 @@ public struct CodeCard: View {
     }
     
     public var codeTextWithFont: some View {
-        CodeText(text, style: styleName) { highlightResult in
+        CodeText(text, style: styleName, ancestorProvidedColorScheme: colorScheme) { highlightResult in
             withAnimation {
                 self.highlightResult = highlightResult
             }
@@ -305,7 +309,8 @@ public struct CodeCard: View {
     @State private var isCopied = false
     var copyButton: some View {
         Button(action: {
-            let success = text.copyToClipboard()
+//            let success = text.copyToClipboard()
+            let success = text.copyAsMarkdownCodeBlockToClipboard(self.codeLanguage)
             if success {
                 withAnimation { isCopied = true }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -315,19 +320,28 @@ public struct CodeCard: View {
                 }
             }
         }) {
+            #if os(macOS)
             Label(isCopied ? "Copied!" : "Copy Code", systemImage: isCopied ? "checkmark" : "doc.on.doc")
                 .font(.callout)
                 .foregroundColor(isCopied ? .green : .secondary)
                 .frame(height: 34)
+            #else
+            systemImage(isCopied ? "checkmark" : "doc.on.doc",
+                        withBackground: true,
+                        foregroundColor: isCopied ? .green : .secondary
+            )
+            #endif
         }
     }
     
     
     
-    func systemImage(_ systemName: String, withBackground: Bool = true) -> some View {
+    func systemImage(_ systemName: String,
+                     withBackground: Bool = true,
+                     foregroundColor: Color = Color.secondary) -> some View {
         Text("\(Image(systemName: systemName))")
             .font(.callout)
-            .foregroundColor(.secondary)
+            .foregroundColor(foregroundColor)
             .frame(width: 34, height: 34)
             .background {
                 Circle()

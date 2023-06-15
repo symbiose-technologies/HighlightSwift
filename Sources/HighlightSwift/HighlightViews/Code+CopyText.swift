@@ -23,6 +23,18 @@ import AppKit
 
 extension String {
     
+    @discardableResult
+    func copyAsMarkdownCodeBlockToClipboard(_ languageName: String?) -> Bool {
+        //wraps the string in code block element
+        return self.asMarkdownCodeBlock(languageName).copyToClipboard()
+    }
+    
+
+    
+    func asMarkdownCodeBlock(_ languageName: String?) -> String {
+        let wrapped = "```\(languageName ?? "")\n\(self)\n```"
+        return wrapped
+    }
     
     @discardableResult
     func copyToClipboard() -> Bool {

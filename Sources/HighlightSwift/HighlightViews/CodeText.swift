@@ -1,7 +1,6 @@
 import SwiftUI
 
-//@available(iOS 16.1, *)
-//@available(tvOS 16.1, *)
+
 public struct CodeText: View {
     @Environment(\.colorScheme)
     var colorScheme
@@ -23,6 +22,7 @@ public struct CodeText: View {
             colorScheme: colorScheme
         )
     }
+    let ancestorProvidedColorScheme: ColorScheme?
 
     /// Creates a text view that displays syntax highlighted code.
     /// - Parameters:
@@ -33,11 +33,24 @@ public struct CodeText: View {
     public init(_ text: String,
                 language: String? = nil,
                 style styleName: HighlightStyle.Name = .xcode,
-                onHighlight: ((HighlightResult) -> Void)? = nil) {
+                ancestorProvidedColorScheme: ColorScheme? = nil,
+                onHighlight: ((HighlightResult) -> Void)? = nil
+            ) {
         self.text = text
         self.language = language
         self.styleName = styleName
         self.onHighlight = onHighlight
+        
+        self.ancestorProvidedColorScheme = ancestorProvidedColorScheme
+        
+        let initialHighlightStyle = HighlightStyle(name: styleName, colorScheme: ancestorProvidedColorScheme ?? .light)
+        if let cached = HighlightCache.shared.getCachedFor(text, language: language, style: initialHighlightStyle) {
+            self._highlightResult = .init(wrappedValue: cached)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [cached, onHighlight] in
+                onHighlight?(cached)
+            }
+        }
+    
     }
     
     public var body: some View {
@@ -81,12 +94,19 @@ public struct CodeText: View {
     
     private func highlightText(_ style: HighlightStyle? = nil) async {
         do {
-            let result = try await Highlight.text(
+            let result = try await HighlightCache.shared.get(
                 text,
                 language: language,
                 style: style ?? highlightStyle
             )
             await handleHighlightResult(result)
+            
+//            let result = try await Highlight.text(
+//                text,
+//                language: language,
+//                style: style ?? highlightStyle
+//            )
+//            await handleHighlightResult(result)
         } catch {
             print(error)
         }

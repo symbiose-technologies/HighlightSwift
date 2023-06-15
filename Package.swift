@@ -14,11 +14,15 @@ let package = Package(
             name: "HighlightSwift",
             targets: ["HighlightSwift"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/nicklockwood/LRUCache.git", from: "1.0.0")
+    ],
     targets: [
         .target(
             name: "HighlightSwift",
-            dependencies: [],
+            dependencies: [
+                .product(name: "LRUCache", package: "LRUCache")
+            ],
             resources: [.process("HighlightJS")]),
         .testTarget(
             name: "HighlightSwiftTests",
