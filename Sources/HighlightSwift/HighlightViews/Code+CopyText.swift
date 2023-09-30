@@ -26,7 +26,9 @@ extension String {
     @discardableResult
     func copyAsMarkdownCodeBlockToClipboard(_ languageName: String?) -> Bool {
         //wraps the string in code block element
-        return self.asMarkdownCodeBlock(languageName).copyToClipboard()
+        
+        return self.copyToClipboard()
+//        return self.asMarkdownCodeBlock(languageName).copyToClipboard()
     }
     
 

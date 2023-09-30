@@ -42,8 +42,6 @@ public struct CodeCardConfig {
 }
 
 
-
-//@available(iOS 16.1, *)
 public struct CodeCard: View {
     @Environment(\.colorScheme)
     var colorScheme
@@ -96,6 +94,12 @@ public struct CodeCard: View {
         self._font = State(initialValue: config.font)
         self._fontSize = State(initialValue: config.fontSize)
         self._lineHorizontalWrap = State(initialValue: !config.horizontalScroll)
+        
+//        let initialHighlightStyle = HighlightStyle(name: styleName, colorScheme: .light)
+//        if let cached = HighlightCache.shared.getCachedFor(text, language: nil, style: initialHighlightStyle) {
+//            self._highlightResult = .init(wrappedValue: cached)
+//        }
+        
     }
     
     public var body: some View {
@@ -188,7 +192,10 @@ public struct CodeCard: View {
     }
     
     public var codeTextNoFont: some View {
-        CodeText(text, style: styleName, ancestorProvidedColorScheme: colorScheme) { highlightResult in
+        CodeText(text, 
+                 style: styleName,
+                 ancestorProvidedColorScheme: colorScheme,
+                 cachedHighlightRes: self.highlightResult) { highlightResult in
             withAnimation {
                 self.highlightResult = highlightResult
             }
@@ -198,14 +205,26 @@ public struct CodeCard: View {
     }
     
     public var codeTextWithFont: some View {
-        CodeText(text, style: styleName, ancestorProvidedColorScheme: colorScheme) { highlightResult in
-            withAnimation {
-                self.highlightResult = highlightResult
-            }
-        }
+        CodeText(text,
+                 style: styleName,
+                 ancestorProvidedColorScheme: colorScheme,
+                 onHighlight: self.handleReceivedHighlightResult)
+        
+//        CodeText(text,
+//                 style: styleName,
+//                 ancestorProvidedColorScheme: colorScheme) { highlightResult in
+//            self.highlightResult = highlightResult
+////            withAnimation {
+////                self.highlightResult = highlightResult
+////            }
+//        }
         .font(self.font)
         .textSelection(.enabled)
-
+    }
+    
+    
+    func handleReceivedHighlightResult(_ highlightResult: HighlightResult) {
+        self.highlightResult = highlightResult
     }
     
     

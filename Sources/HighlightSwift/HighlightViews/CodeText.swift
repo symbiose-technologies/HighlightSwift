@@ -34,6 +34,7 @@ public struct CodeText: View {
                 language: String? = nil,
                 style styleName: HighlightStyle.Name = .xcode,
                 ancestorProvidedColorScheme: ColorScheme? = nil,
+                cachedHighlightRes: HighlightResult? = nil,
                 onHighlight: ((HighlightResult) -> Void)? = nil
             ) {
         self.text = text
@@ -43,26 +44,40 @@ public struct CodeText: View {
         
         self.ancestorProvidedColorScheme = ancestorProvidedColorScheme
         
-        let initialHighlightStyle = HighlightStyle(name: styleName, colorScheme: ancestorProvidedColorScheme ?? .light)
-        if let cached = HighlightCache.shared.getCachedFor(text, language: language, style: initialHighlightStyle) {
+        if let cached = cachedHighlightRes {
             self._highlightResult = .init(wrappedValue: cached)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [cached, onHighlight] in
-                onHighlight?(cached)
-            }
+        } else {
+            self._highlightResult = .init(wrappedValue: nil)
+
+//            let initialHighlightStyle = HighlightStyle(name: styleName, colorScheme: ancestorProvidedColorScheme ?? .light)
+//            if let cached = HighlightCache.shared.getCachedFor(text, language: language, style: initialHighlightStyle) {
+//                self._highlightResult = .init(wrappedValue: cached)
+////                onHighlight?(cached)
+//                DispatchQueue.main.async { [cached, onHighlight] in
+//                    onHighlight?(cached)
+//                }
+//                
+//            }
         }
-    
+        
     }
     
     public var body: some View {
         highlightedText
-//            .fontDesign(.monospaced)
-            .task {
+            .task(priority: .low) {
                 if
                     highlightTask == nil,
                     highlightResult == nil {
                     await highlightText()
                 }
             }
+//            .onAppear {
+//                if
+//                    highlightTask == nil,
+//                    highlightResult == nil {
+//                    highlightText()
+//                }
+//            }
             .onChange(of: styleName) { newStyleName in
                 highlightText(styleName: newStyleName)
             }
@@ -71,6 +86,7 @@ public struct CodeText: View {
                 highlightText(colorScheme: newColorScheme)
             }
     }
+    
     
     private var highlightedText: Text {
         if let highlightResult {
@@ -82,17 +98,20 @@ public struct CodeText: View {
         
     private func highlightText(styleName: HighlightStyle.Name? = nil,
                                colorScheme: ColorScheme? = nil) {
+        print("HighlightText sync called")
+        
         let highlightStyle = HighlightStyle(
             name: styleName ?? self.styleName,
             colorScheme: colorScheme ?? self.colorScheme
         )
         highlightTask?.cancel()
-        highlightTask = Task {
+        highlightTask = Task(priority: .low) {
             await highlightText(highlightStyle)
         }
     }
     
     private func highlightText(_ style: HighlightStyle? = nil) async {
+//        print("HighlightText async called")
         do {
             let result = try await HighlightCache.shared.get(
                 text,
@@ -101,12 +120,6 @@ public struct CodeText: View {
             )
             await handleHighlightResult(result)
             
-//            let result = try await Highlight.text(
-//                text,
-//                language: language,
-//                style: style ?? highlightStyle
-//            )
-//            await handleHighlightResult(result)
         } catch {
             print(error)
         }
@@ -119,6 +132,7 @@ public struct CodeText: View {
             highlightResult = result
         } else {
             withAnimation {
+                print("[HighlightSwift] highlightResult set WITH ANIMATION")
                 highlightResult = result
             }
         }

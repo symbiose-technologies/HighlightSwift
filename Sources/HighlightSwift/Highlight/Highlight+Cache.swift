@@ -60,7 +60,7 @@ public class HighlightCache {
     
     public func getCachedFor(_ params: HighlightTextParams) -> HighlightResult? {
         if let cached = cache.value(forKey: params) {
-            print("HighlightCache: Found cached result!")
+//            print("HighlightCache: Found cached result!")
             return cached
         }
         return nil
@@ -71,7 +71,6 @@ public class HighlightCache {
                              style: HighlightStyle) -> HighlightResult? {
         let params = HighlightTextParams(text: text, language: language, ignoreIllegals: ignoreIllegals, style: style)
         return self.getCachedFor(params)
-//        return cache.value(forKey: params)
     }
     
     func get(_ text: String,
