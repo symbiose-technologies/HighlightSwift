@@ -224,7 +224,9 @@ public struct CodeCard: View {
     
     
     func handleReceivedHighlightResult(_ highlightResult: HighlightResult) {
-        self.highlightResult = highlightResult
+        withAnimation {
+            self.highlightResult = highlightResult
+        }
     }
     
     
